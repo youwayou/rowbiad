@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROWBIAD VIRTUAL CLASSES</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .video-grid-container {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        .hand-raised-indicator {
+            box-shadow: 0 0 15px 5px #facc15; /* yellow-400 */
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+        .tool-btn {
+            padding: 8px;
+            border-radius: 9999px;
+            background-color: transparent;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            color: white;
+        }
+        .tool-btn.active {
+            background-color: #4f46e5; /* indigo-600 */
+        }
+        #color-picker {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            width: 32px; height: 32px; background-color: transparent;
+            border: none; cursor: pointer;
+        }
+        #color-picker::-webkit-color-swatch { border-radius: 50%; border: 2px solid #fff; }
+        #color-picker::-moz-color-swatch { border-radius: 50%; border: 2px solid #fff; }
+        .whiteboard-scroll-container { height: 100%; overflow-y: auto; position: relative; }
+        #whiteboard-canvas, #student-whiteboard-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 200%; /* Make canvas taller for scrolling */
+            z-index: 1;
+        }
+         #student-whiteboard-canvas {
+            pointer-events: none; /* Student canvas is for drawing only by default */
+        }
+        .editable-textarea {
+            background: transparent;
+            border: 1px dashed rgba(79, 70, 229, 0.5);
+            color: white;
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            resize: none;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+         .editable-textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        .payment-method-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            border: 2px solid rgba(99, 102, 241, 0.2);
+            background: rgba(79, 70, 229, 0.15);
+            color: #c7d2fe;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .payment-method-btn:hover {
+            background: rgba(79, 70, 229, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        .payment-method-btn.active {
+            background: #4f46e5;
+            border-color: #6366f1;
+            color: #ffffff;
+            box-shadow: 0 15px 30px rgba(79, 70, 229, 0.35);
+        }
+        .payment-method-section.hidden { display: none; }
+        .video-controls {
+            background: rgba(31, 41, 55, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.3);
+        }
+        .video-controls button {
+            transition: all 0.2s ease;
+        }
+        .video-controls input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: rgba(75, 85, 99, 0.5);
+            border-radius: 3px;
+            outline: none;
+        }
+        .video-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4f46e5;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .video-controls input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #4f46e5;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+    <script type="module" src="./scripts/rowbiad.js"></script>
+</head>
+<body class="bg-gray-900 text-white flex flex-col h-screen antialiased">
+
+    <!-- Entry Overlay -->
+    <div id="entry-overlay" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
+        <div class="text-center">
+            <h1 class="text-5xl font-bold mb-2">ROWBIAD VIRTUAL CLASSES</h1>
+            <p class="text-gray-400 mb-8">Please select your role to begin.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button id="entry-student-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition">Join as Student</button>
+                <button id="entry-lecturer-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition">I'm a Lecturer</button>
+            </div>
+            <div class="mt-8">
+                <button id="entry-admin-btn" class="text-gray-500 hover:text-gray-400 text-sm transition">Admin Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Overlay -->
+    <div id="admin-login-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
+            <button id="admin-back-btn" class="absolute top-4 left-4 text-gray-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Administrator Login</h2>
+            <form id="admin-login-form">
+                <div class="mb-4">
+                    <label for="admin-username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                    <input type="text" id="admin-username" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" value="rowbiad_admin" required>
+                </div>
+                <div class="mb-4">
+                    <label for="admin-email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input type="email" id="admin-email" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" value="admin@rowbiad.com" required>
+                </div>
+                <div class="mb-6">
+                    <label for="admin-password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input type="password" id="admin-password" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" value="password" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-500 text-white font-bold py-3 rounded-lg hover:bg-indigo-600 transition">Login</button>
+                <p id="admin-login-error" class="text-red-400 text-sm text-center mt-4 h-4"></p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lecturer Signup Overlay -->
+    <div id="lecturer-signup-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full">
+             <h2 class="text-2xl font-bold text-white text-center mb-6">Lecturer Signup</h2>
+             <form id="lecturer-signup-form">
+                 <div class="mb-4">
+                     <label for="lecturer-name-signup" class="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
+                     <input type="text" id="lecturer-name-signup" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" required>
+                 </div>
+                 <div class="mb-4">
+                     <label for="lecturer-email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                     <input type="email" id="lecturer-email" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" required>
+                 </div>
+                  <div class="mb-4">
+                     <label for="class-subject" class="block text-sm font-medium text-gray-300 mb-1">Class Subject</label>
+                     <input type="text" id="class-subject" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" required>
+                 </div>
+                 <div class="mb-6">
+                     <label for="class-fee" class="block text-sm font-medium text-gray-300 mb-1">Class Fee (GHS)</label>
+                     <input type="number" id="class-fee" min="0" step="0.01" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" placeholder="e.g., 75" required>
+                     <p class="text-xs text-gray-400 mt-1">Students will be charged this amount before joining.</p>
+                 </div>
+                 <button type="submit" class="w-full bg-indigo-500 text-white font-bold py-3 rounded-lg hover:bg-indigo-600 transition">Create Class</button>
+                 <p id="lecturer-signup-error" class="text-red-400 text-sm text-center mt-4 h-4"></p>
+             </form>
+        </div>
+    </div>
+    
+    <!-- Lecturer Link Share Screen -->
+    <div id="link-share-screen" class="hidden fixed inset-0 bg-gray-900 z-40 flex items-center justify-center p-4 text-center">
+        <div>
+            <h2 class="text-3xl font-bold text-white mb-2">Your Class is Ready!</h2>
+            <p class="text-gray-400 mb-6" id="lecturer-welcome-message"></p>
+            <div class="bg-gray-800 p-4 rounded-lg max-w-2xl mx-auto">
+                 <p class="text-gray-300 mb-2">Share this unique link with your students:</p>
+                 <div class="flex gap-2 bg-gray-900 p-2 rounded-md">
+                     <input id="class-link-input" type="text" class="w-full bg-transparent text-lg text-green-400" readonly>
+                     <button id="copy-link-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Copy</button>
+                 </div>
+                 <button id="whatsapp-share-btn-setup" class="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition flex items-center justify-center gap-2 mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="currentColor"><path d="M16.6 7.4c-1.2-1.2-2.8-1.8-4.6-1.8-3.6 0-6.5 2.9-6.5 6.5s2.9 6.5 6.5 6.5c1.8 0 3.4-.6 4.6-1.8l-1.4-1.4c-.9.9-2.1 1.4-3.3 1.4-2.6 0-4.7-2.1-4.7-4.7s2.1-4.7 4.7-4.7c1.2 0 2.4.5 3.3 1.4l1.4-1.4zm-4.6 11.1c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm0-18c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10-4.5-10-10-10z M17 12h-4V8h-2v4H7v2h4v4h2v-4h4v-2z"/></svg>
+                    Share to WhatsApp
+                 </button>
+            </div>
+            <button id="start-class-btn" class="mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition">Start Class</button>
+        </div>
+    </div>
+
+    <!-- Payment Overlay -->
+    <div id="payment-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-40 flex items-center justify-center p-4 transition-opacity duration-300">
+        <div id="payment-modal" class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center transform transition-all duration-300 scale-100 opacity-100">
+            <h2 class="text-2xl font-bold text-white">Unlock Class Access</h2>
+            <p class="text-gray-400 mt-2" id="payment-instruction">Select a payment method to continue.</p>
+            <p class="mt-4 text-lg font-semibold text-indigo-200">Amount Due: <span id="payment-amount" class="text-white">GHS 0.00</span></p>
+            <div class="mt-6 flex flex-wrap gap-3 justify-center">
+                <button type="button" class="payment-method-btn active" data-payment-method="momo">MTN MoMo</button>
+                <button type="button" class="payment-method-btn" data-payment-method="vodafone">Vodafone Cash</button>
+                <button type="button" class="payment-method-btn" data-payment-method="card">Debit/Credit Card</button>
+            </div>
+            <div class="mt-6 flex flex-col items-center gap-2">
+                <img id="payment-method-logo" src="https://logovector.net/wp-content/uploads/2021/02/mtn-momo-logo-logovector.png" alt="Payment method logo" class="h-12" onerror="this.classList.add('hidden'); document.getElementById('payment-method-logo-text').classList.remove('hidden')">
+                <div id="payment-method-logo-text" class="hidden text-2xl font-bold text-indigo-300"></div>
+            </div>
+            <form id="payment-form" class="mt-6 space-y-5 text-left">
+                <div id="payment-section-momo" class="payment-method-section">
+                    <label for="momo-number" class="block text-sm font-medium text-gray-300 mb-2">MoMo Number</label>
+                    <input type="tel" id="momo-number" placeholder="e.g., 024 123 4567" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-yellow-500 focus:ring-yellow-500 transition" data-required-for="momo">
+                </div>
+                <div id="payment-section-vodafone" class="payment-method-section hidden">
+                    <label for="vodafone-number" class="block text-sm font-medium text-gray-300 mb-2">Vodafone Cash Number</label>
+                    <input type="tel" id="vodafone-number" placeholder="e.g., 020 987 6543" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-rose-500 focus:ring-rose-500 transition" data-required-for="vodafone">
+                </div>
+                <div id="payment-section-card" class="payment-method-section hidden space-y-4">
+                    <div>
+                        <label for="card-number" class="block text-sm font-medium text-gray-300 mb-2">Card Number</label>
+                        <input type="text" id="card-number" placeholder="1234 5678 9012 3456" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" inputmode="numeric" maxlength="19" data-required-for="card">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="card-expiry" class="block text-sm font-medium text-gray-300 mb-2">Expiry</label>
+                            <input type="text" id="card-expiry" placeholder="MM/YY" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" data-required-for="card">
+                        </div>
+                        <div>
+                            <label for="card-cvv" class="block text-sm font-medium text-gray-300 mb-2">CVV</label>
+                            <input type="text" id="card-cvv" placeholder="123" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" inputmode="numeric" maxlength="4" data-required-for="card">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="card-name" class="block text-sm font-medium text-gray-300 mb-2">Cardholder Name</label>
+                        <input type="text" id="card-name" placeholder="As printed on card" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition" data-required-for="card">
+                    </div>
+                </div>
+                <button type="submit" id="pay-button" class="w-full bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg hover:bg-yellow-400 transition-transform transform hover:scale-105 flex items-center justify-center">Pay GHS 0.00 via MTN MoMo</button>
+            </form>
+            <div id="payment-status" class="mt-4 text-gray-300 h-6"></div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden h-screen w-screen flex flex-col p-4 sm:p-6 lg:p-8">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+            <button id="admin-logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Logout</button>
+        </header>
+        <div class="flex-1 bg-gray-800/50 rounded-xl p-6 overflow-y-auto custom-scrollbar">
+            <h2 class="text-2xl font-semibold mb-4">Lecturer Payouts</h2>
+            <div id="payout-list" class="space-y-4">
+                <!-- Payout items will be injected here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Recording Indicator -->
+    <div id="recording-indicator" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-600 text-white px-4 py-1.5 text-sm font-bold rounded-full flex items-center gap-2 animate-pulse">
+        <div class="w-3 h-3 bg-white rounded-full"></div>
+        REC
+    </div>
+    
+    <div id="app-container" class="hidden h-screen w-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-gray-800/50 backdrop-blur-sm p-3 flex justify-between items-center z-20 shadow-lg flex-shrink-0">
+            <h1 class="text-xl font-bold">ROWBIAD VIRTUAL CLASSES</h1>
+            <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Logout</button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
+            
+            <!-- Left Panel (Lecturer Video) -->
+            <div id="left-panel" class="w-full lg:w-64 flex-shrink-0 flex flex-col gap-4">
+                <div class="bg-gray-800/50 p-4 rounded-lg flex-1 flex flex-col">
+                    <h2 id="lecturer-panel-title" class="text-lg font-semibold mb-3">Lecturer</h2>
+                     <div class="relative bg-black rounded-lg overflow-hidden aspect-video border-2 border-blue-500">
+                        <video id="lecturer-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <div id="lecturer-cam-off-placeholder" class="hidden absolute inset-0 bg-gray-700 flex items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" y2="22"/><path d="M10.33 10.33 5 18H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l2.5-3 1.17.83"/><path d="M14.5 4h-5L7 7H4"/><path d="M22 10h-1.5a2 2 0 0 0-1.93 1.51L17.5 16H20a2 2 0 0 0 2-2V9c0-1.1-.9-2-2-2Z"/></svg>
+                        </div>
+                        <div class="absolute bottom-0 left-0 bg-black/50 px-2 py-1 w-full text-center">
+                            <span id="lecturer-name-display" class="font-semibold text-sm text-white"></span>
+                        </div>
+                    </div>
+                    <div id="lecturer-controls" class="hidden mt-4 space-y-2">
+                        <button id="open-file-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg transition">Open File</button>
+                        <button id="share-link-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <span>Copy Link</span>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept="image/*, .txt, video/*"/>
+                    </div>
+                </div>
+                 <div id="student-whiteboard-controls" class="hidden bg-gray-800/50 p-4 rounded-lg">
+                    <h2 class="text-lg font-semibold mb-3">Whiteboard Tools</h2>
+                    <button id="student-draw-btn" class="w-full bg-indigo-500 text-white font-bold py-2 rounded-lg hover:bg-indigo-600 transition">Draw on Whiteboard</button>
+                 </div>
+            </div>
+
+            <!-- Whiteboard Area -->
+            <div class="flex-1 flex flex-col bg-gray-800 rounded-xl overflow-hidden shadow-2xl relative">
+                <div class="absolute top-2 left-2 bg-green-500 text-white px-3 py-1 text-sm font-bold rounded-full flex items-center gap-2 z-20">
+                    <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>LIVE
+                </div>
+                 <div id="undo-container" class="hidden absolute top-4 right-4 z-20">
+                    <button id="undo-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded-full text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                        Undo
+                    </button>
+                </div>
+                <div id="clear-confirm-overlay" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-xs w-full text-center shadow-xl">
+                        <h3 class="text-lg font-semibold">Clear whiteboard?</h3>
+                        <p class="text-sm text-gray-300 mt-2">This removes all drawings and shared files for everyone.</p>
+                        <div class="mt-5 flex flex-col sm:flex-row gap-3">
+                            <button id="confirm-clear-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg transition">Clear Now</button>
+                            <button id="cancel-clear-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg transition">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 whiteboard-scroll-container">
+                    <div id="whiteboard-content" class="p-6 text-white transition-opacity duration-300 relative z-10"></div>
+                    <canvas id="whiteboard-canvas" class="z-0"></canvas>
+                    <canvas id="student-whiteboard-canvas" class="z-0"></canvas>
+                </div>
+                 <!-- Drawing Toolbar -->
+                <div id="drawing-toolbar" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/80 p-2 rounded-full flex items-center gap-1 shadow-lg z-20">
+                    <button class="tool-btn" data-tool="pen" title="Pen"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+                    <button class="tool-btn" data-tool="text" title="Text"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21H7Z"/></svg></button>
+                    <input type="color" id="color-picker" value="#ef4444" title="Color Picker">
+                    <button id="clear-canvas" class="tool-btn" title="Clear Canvas"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h6"/><path d="m3 12 3 3-3 3"/></svg></button>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
+                 <div class="bg-gray-800/50 p-4 rounded-lg flex-1 flex flex-col overflow-hidden">
+                    <h2 class="text-lg font-semibold mb-3">Participants (<span id="participant-count">1</span>)</h2>
+                    <div id="participants-grid" class="grid gap-3 video-grid-container flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                        <div id="user-participant-card" class="relative bg-gray-800 rounded-lg overflow-hidden aspect-video border-2 border-transparent">
+                            <video id="user-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                            <div id="user-cam-off-placeholder" class="hidden absolute inset-0 bg-gray-700 flex items-center justify-center">
+                               <svg class="w-8 h-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" y2="22"/><path d="M10.33 10.33 5 18H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l2.5-3 1.17.83"/><path d="M14.5 4h-5L7 7H4"/><path d="M22 10h-1.5a2 2 0 0 0-1.93 1.51L17.5 16H20a2 2 0 0 0 2-2V9c0-1.1-.9-2-2-2Z"/></svg>
+                            </div>
+                            <div class="absolute bottom-0 left-0 w-full bg-black/50 px-2 py-1"><span class="text-sm font-medium">You</span></div>
+                            <div class="absolute top-2 right-2 text-xl hidden hand-raise-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><path d="M18 11.034C18 7.13 15.485 4 12 4s-6 3.13-6 7.034c0 .82.162 1.622.46 2.366L4 21l8.25-3.25c.85.19 1.74.284 2.65.284 1.43 0 2.802-.383 4-1.055"/></svg></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="student-panel" class="bg-gray-800/50 p-4 rounded-lg">
+                     <h2 class="text-lg font-semibold mb-3">Submit Assignment</h2>
+                     <form id="assignment-form">
+                         <input type="file" id="assignment-file" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required accept="image/*, .txt, video/*">
+                         <button type="submit" class="w-full mt-3 bg-blue-500 text-white font-bold py-2 rounded-lg hover:bg-blue-600 transition">Submit</button>
+                     </form>
+                     <p id="assignment-status-msg" class="text-green-400 text-sm text-center mt-2 h-4"></p>
+                </div>
+
+                <div id="lecturer-assignment-panel" class="hidden bg-gray-800/50 p-4 rounded-lg flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold">Submissions</h2>
+                        <button id="withdrawal-btn" class="text-sm bg-green-600 px-3 py-1 rounded-full hover:bg-green-700">Dashboard</button>
+                    </div>
+                    <div id="assignments-list" class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                        <p class="text-gray-400 text-center py-4">No assignments submitted.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Controls Footer -->
+        <footer class="bg-gray-800/50 backdrop-blur-sm p-4 flex justify-center items-center gap-4 z-20 shadow-inner flex-shrink-0">
+            <button id="toggle-mic" class="control-btn bg-blue-500 hover:bg-blue-600"><svg id="mic-on-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" y2="22"/></svg><svg id="mic-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><line x1="2" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 1 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M12 19v3"/><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 .43 1.57"/><path d="M15 10V5a3 3 0 0 0-5.38-2.22"/></svg></button>
+            <button id="toggle-camera" class="control-btn bg-blue-500 hover:bg-blue-600"><svg id="cam-on-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg><svg id="cam-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><line x1="2" y1="2" y2="22"/><path d="M10.33 10.33 5 18H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l2.5-3 1.17.83"/><path d="M14.5 4h-5L7 7H4"/><path d="M22 10h-1.5a2 2 0 0 0-1.93 1.51L17.5 16H20a2 2 0 0 0 2-2V9c0-1.1-.9-2-2-2Z"/></svg></button>
+            <button id="record-btn" class="control-btn bg-gray-600 hover:bg-gray-700 flex items-center gap-2 px-4"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg><span id="record-text">Record</span></button>
+            <button id="raise-hand" class="control-btn bg-yellow-500 hover:bg-yellow-600 flex items-center gap-2 px-4"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11.034C18 7.13 15.485 4 12 4s-6 3.13-6 7.034c0 .82.162 1.622.46 2.366L4 21l8.25-3.25c.85.19 1.74.284 2.65.284 1.43 0 2.802-.383 4-1.055"/></svg><span id="raise-hand-text">Raise Hand</span></button>
+            <button id="end-call" class="control-btn bg-red-600 hover:bg-red-700"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.64 14.36a9.01 9.01 0 0 1-1.23 2.53L12 12l-2.41 4.89a9.01 9.01 0 0 1-1.23-2.53"/><path d="M7.17 4.72a9.03 9.03 0 0 1 2.46-2.46L12 8l2.6-3.29a9.03 9.03 0 0 1 4.68 2.46"/><circle cx="12" cy="12" r="10"/></svg></button>
+        </footer>
+    </div>
+    
+    <style> .control-btn { min-width: 56px; height: 56px; border-radius: 9999px; } </style>
+
+
+        const entryLecturerBtn = document.getElementById('entry-lecturer-btn');
+        const entryAdminBtn = document.getElementById('entry-admin-btn');
+        
+        const adminLoginOverlay = document.getElementById('admin-login-overlay');
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const adminLogoutBtn = document.getElementById('admin-logout-btn');
+        const adminBackBtn = document.getElementById('admin-back-btn');
+        const payoutList = document.getElementById('payout-list');
+
+        const lecturerSignupOverlay = document.getElementById('lecturer-signup-overlay');
+        const lecturerSignupForm = document.getElementById('lecturer-signup-form');
+        const lecturerNameSignup = document.getElementById('lecturer-name-signup');
+        const classSubjectInput = document.getElementById('class-subject');
+
+        const linkShareScreen = document.getElementById('link-share-screen');
+        const lecturerWelcomeMessage = document.getElementById('lecturer-welcome-message');
+        const classLinkInput = document.getElementById('class-link-input');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        const startClassBtn = document.getElementById('start-class-btn');
+        const shareLinkBtn = document.getElementById('share-link-btn');
+        const whatsappShareBtnSetup = document.getElementById('whatsapp-share-btn-setup');
+
+        const paymentOverlay = document.getElementById('payment-overlay');
+        const paymentForm = document.getElementById('payment-form');
+        const payButton = document.getElementById('pay-button');
+        const paymentStatus = document.getElementById('payment-status');
+        
+        const appContainer = document.getElementById('app-container');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userVideo = document.getElementById('user-video');
+        const lecturerVideo = document.getElementById('lecturer-video');
+        const userCamOffPlaceholder = document.getElementById('user-cam-off-placeholder');
+        const lecturerCamOffPlaceholder = document.getElementById('lecturer-cam-off-placeholder');
+        const lecturerNameDisplay = document.getElementById('lecturer-name-display');
+        const participantsGrid = document.getElementById('participants-grid');
+        const participantCount = document.getElementById('participant-count');
+
+        const studentPanel = document.getElementById('student-panel');
+        const lecturerAssignmentPanel = document.getElementById('lecturer-assignment-panel');
+        const lecturerControls = document.getElementById('lecturer-controls');
+        
+        const assignmentForm = document.getElementById('assignment-form');
+        const assignmentFileInput = document.getElementById('assignment-file');
+        const assignmentsList = document.getElementById('assignments-list');
+        const assignmentStatusMsg = document.getElementById('assignment-status-msg');
+        
+        const openFileBtn = document.getElementById('open-file-btn');
+        const fileInput = document.getElementById('file-input');
+        
+        // Whiteboard elements
+        const whiteboardContent = document.getElementById('whiteboard-content');
+        const whiteboardCanvas = document.getElementById('whiteboard-canvas');
+        const studentWhiteboardCanvas = document.getElementById('student-whiteboard-canvas');
+        const drawingToolbar = document.getElementById('drawing-toolbar');
+        const colorPicker = document.getElementById('color-picker');
+        const clearCanvasBtn = document.getElementById('clear-canvas');
+        const toolBtns = document.querySelectorAll('.tool-btn');
+        const studentWhiteboardControls = document.getElementById('student-whiteboard-controls');
+        const studentDrawBtn = document.getElementById('student-draw-btn');
+        const undoContainer = document.getElementById('undo-container');
+        const undoBtn = document.getElementById('undo-btn');
+
+        // Footer Controls
+        const toggleMicBtn = document.getElementById('toggle-mic');
+        const toggleCameraBtn = document.getElementById('toggle-camera');
+        const recordBtn = document.getElementById('record-btn');
+        const raiseHandBtn = document.getElementById('raise-hand');
+        const endCallBtn = document.getElementById('end-call');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        
+        // --- State ---
+        let currentUserRole = 'student';
+        let currentClassSubject = '';
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let lastX = 0, lastY = 0;
+        let submittedAssignments = [];
+        let isMicOn = true, isCameraOn = true, isRecording = false, isHandRaised = false;
+        let tempTextInput = null;
+        let whiteboardHistory = [];
+        let mediaRecorder;
+        let recordedChunks = [];
+        const lecturerData = [
+            { id: 1, name: 'Dr. Evelyn Reed', earnings: 1250.00, email: 'e.reed@university.edu', students: 25 },
+            { id: 2, name: 'Prof. Samuel Chen', earnings: 3400.50, email: 's.chen@university.edu', students: 68 },
+            { id: 3, name: 'Dr. Aisha Khan', earnings: 875.75, email: 'a.khan@university.edu', students: 17 }
+        ];
+
+        const lecturerCtx = whiteboardCanvas.getContext('2d');
+        const studentCtx = studentWhiteboardCanvas.getContext('2d');
+        
+        // --- Initial Flow ---
+        
+        const initializeStudentSession = () => {
+            entryOverlay.classList.add('hidden');
+            paymentOverlay.classList.remove('hidden');
+            currentUserRole = 'student';
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+        
+        if (sessionId) {
+            initializeStudentSession();
+        } else {
+            entryOverlay.classList.remove('hidden');
+            entryStudentBtn.addEventListener('click', initializeStudentSession);
+            entryLecturerBtn.addEventListener('click', () => {
+                entryOverlay.classList.add('hidden');
+                lecturerSignupOverlay.classList.remove('hidden');
+                currentUserRole = 'lecturer';
+            });
+            entryAdminBtn.addEventListener('click', () => {
+                entryOverlay.classList.add('hidden');
+                adminLoginOverlay.classList.remove('hidden');
+            });
+        }
+        
+        adminBackBtn.addEventListener('click', () => {
+            adminLoginOverlay.classList.add('hidden');
+            entryOverlay.classList.remove('hidden');
+        });
+
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+            const errorEl = document.getElementById('admin-login-error');
+
+            if (username === 'rowbiad_admin' && email === 'admin@rowbiad.com' && pass === 'password') {
+                errorEl.textContent = '';
+                adminLoginOverlay.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                errorEl.textContent = 'Invalid credentials. Please try again.';
+            }
+        });
+        
+        adminLogoutBtn.addEventListener('click', () => {
+            adminDashboard.classList.add('hidden');
+            entryOverlay.classList.remove('hidden');
+        });
+
+        lecturerSignupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const lecturerName = lecturerNameSignup.value;
+            currentClassSubject = classSubjectInput.value;
+            lecturerNameDisplay.textContent = lecturerName;
+
+            lecturerWelcomeMessage.textContent = `You are hosting a class on "${currentClassSubject}".`;
+            const newSessionId = 'C' + Math.random().toString(36).substring(2, 9).toUpperCase();
+            const currentUrl = new URL(window.location.origin + window.location.pathname);
+            currentUrl.searchParams.set('session', newSessionId);
+            classLinkInput.value = currentUrl.href;
+            
+            lecturerSignupOverlay.classList.add('hidden');
+            linkShareScreen.classList.remove('hidden');
+        });
+        
+        const copyShareLink = (buttonElement) => {
+            const textToCopy = classLinkInput.value;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = buttonElement.innerHTML;
+                buttonElement.innerHTML = `<span>Copied!</span>`;
+                const originalBgClass = buttonElement.classList.contains('bg-blue-600') ? 'bg-blue-600' : 'bg-gray-600';
+                buttonElement.classList.replace(originalBgClass, 'bg-green-600');
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHTML;
+                    buttonElement.classList.replace('bg-green-600', originalBgClass);
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy link: ', err);
+                 const originalHTML = buttonElement.innerHTML;
+                buttonElement.innerHTML = `<span>Failed!</span>`;
+                const originalBgClass = buttonElement.classList.contains('bg-blue-600') ? 'bg-blue-600' : 'bg-gray-600';
+                buttonElement.classList.replace(originalBgClass, 'bg-red-600');
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHTML;
+                    buttonElement.classList.replace('bg-red-600', originalBgClass);
+                }, 2000);
+            });
+        };
+        
+        const shareToWhatsApp = () => {
+            if (!classLinkInput.value) return;
+            const message = encodeURIComponent(`Join my virtual class on "${currentClassSubject}"! Click the link to join: ${classLinkInput.value}`);
+            const whatsappUrl = `https://wa.me/?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        };
+
+        copyLinkBtn.addEventListener('click', () => copyShareLink(copyLinkBtn));
+        shareLinkBtn.addEventListener('click', () => copyShareLink(shareLinkBtn));
+        whatsappShareBtnSetup.addEventListener('click', shareToWhatsApp);
+        
+        startClassBtn.addEventListener('click', () => {
+            linkShareScreen.classList.add('hidden');
+            initializeApp();
+        });
+
+        paymentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            payButton.disabled = true;
+            paymentStatus.textContent = 'Processing...';
+            setTimeout(() => {
+                paymentStatus.textContent = 'Payment Successful! Joining...';
+                paymentOverlay.classList.add('hidden');
+                initializeApp();
+            }, 1500);
+        });
+
+        function initializeApp() {
+            appContainer.classList.remove('hidden');
+            setupRoleSpecificUI();
+            setupLocalMedia();
+            populateStudents();
+            resizeCanvas();
+            setupWhiteboard(lecturerCtx);
+            setupWhiteboard(studentCtx);
+            document.querySelector('.tool-btn[data-tool="pen"]').classList.add('active');
+        }
+
+        function setupRoleSpecificUI() {
+            if (currentUserRole === 'lecturer') {
+                studentPanel.classList.add('hidden');
+                lecturerAssignmentPanel.classList.remove('hidden');
+                lecturerControls.classList.remove('hidden');
+                drawingToolbar.classList.remove('hidden');
+                studentWhiteboardControls.classList.add('hidden');
+                whiteboardCanvas.style.pointerEvents = 'auto';
+            } else { // Student
+                studentPanel.classList.remove('hidden');
+                lecturerAssignmentPanel.classList.add('hidden');
+                lecturerControls.classList.add('hidden');
+                drawingToolbar.classList.add('hidden');
+                studentWhiteboardControls.classList.remove('hidden');
+                whiteboardCanvas.style.pointerEvents = 'none';
+                recordBtn.classList.remove('hidden'); 
+            }
+        }
+        
+        let localStream;
+        async function setupLocalMedia() {
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                userVideo.srcObject = localStream;
+                lecturerVideo.srcObject = localStream; 
+                lecturerVideo.muted = true;
+            } catch (err) { 
+                console.error("Media error:", err); 
+                alert("Could not access your camera and microphone. Please ensure they are not in use by another application and that you have granted permission. You may need to refresh the page to try again.");
+            }
+        }
+
+        function populateStudents() {
+            const students = [
+                { name: 'Ben Carter' }, { name: 'Chloe Davis' },
+                { name: 'Liam Garcia' }, { name: 'Zoe Martinez' },
+                { name: 'Ava Rodriguez' }, { name: 'Noah Smith' },
+                { name: 'Isabella Johnson' }, { name: 'James Williams' },
+            ];
+            participantCount.textContent = students.length + 1;
+            students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = "relative bg-gray-700 rounded-lg overflow-hidden aspect-video";
+                card.innerHTML = `<img src="https://placehold.co/300x200/1f2937/9ca3af?text=${student.name.charAt(0)}" class="w-full h-full object-cover"><div class="absolute bottom-0 left-0 w-full bg-black/50 px-2 py-1"><span class="text-sm font-medium">${student.name}</span></div>`;
+                participantsGrid.appendChild(card);
+            });
+        }
+
+        // --- Admin Dashboard Logic ---
+        function renderAdminDashboard() {
+            payoutList.innerHTML = '';
+            lecturerData.forEach(lecturer => {
+                const payoutAmount = (lecturer.earnings * 0.70).toFixed(2);
+                const card = document.createElement('div');
+                card.className = 'bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4';
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <h3 class="font-bold text-lg">${lecturer.name}</h3>
+                        <p class="text-sm text-gray-400">${lecturer.email}</p>
+                        <p class="text-sm text-gray-300 mt-1">Students: <span class="font-semibold text-white">${lecturer.students}</span></p>
+                    </div>
+                    <div class="text-left sm:text-right">
+                        <p class="text-xl font-semibold">GHS ${lecturer.earnings.toFixed(2)}</p>
+                        <p class="text-xs text-gray-300">Pending Payout: GHS ${payoutAmount}</p>
+                    </div>
+                    <button data-id="${lecturer.id}" class="pay-btn w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-gray-500 disabled:cursor-not-allowed">
+                        Pay 70%
+                    </button>
+                `;
+                payoutList.appendChild(card);
+            });
+        }
+        
+        payoutList.addEventListener('click', e => {
+            if (e.target.classList.contains('pay-btn') && !e.target.disabled) {
+                const lecturerId = parseInt(e.target.dataset.id);
+                const lecturer = lecturerData.find(l => l.id === lecturerId);
+                if (lecturer) {
+                    const payout = lecturer.earnings * 0.70;
+                    lecturer.earnings *= 0.30;
+                    e.target.textContent = 'Paid!';
+                    e.target.disabled = true;
+                    setTimeout(() => {
+                        alert(`GHS ${payout.toFixed(2)} successfully sent to ${lecturer.name}.`);
+                        renderAdminDashboard();
+                    }, 500);
+                }
+            }
+        });
+
+        // --- Whiteboard Logic ---
+        function setupWhiteboard(ctx) {
+             ctx.lineJoin = 'round';
+             ctx.lineCap = 'round';
+             ctx.lineWidth = 5;
+        }
+        
+        function resizeCanvas() {
+            const rect = whiteboardCanvas.parentElement.getBoundingClientRect();
+            [whiteboardCanvas.width, studentWhiteboardCanvas.width] = [rect.width, rect.width];
+            [whiteboardCanvas.height, studentWhiteboardCanvas.height] = [rect.height * 2, rect.height * 2];
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scrollContainer = canvas.parentElement;
+            return { x: evt.clientX - rect.left, y: evt.clientY - rect.top + scrollContainer.scrollTop };
+        }
+
+        const channel = new BroadcastChannel('whiteboard-sync');
+        channel.onmessage = (event) => {
+            const { type, payload } = event.data;
+            if (type === 'DRAW') {
+                const targetCtx = payload.isStudentDrawing ? studentCtx : lecturerCtx;
+                drawOnCanvas(targetCtx, payload.data);
+            } else if (type === 'ASSIGNMENT') {
+                if (currentUserRole === 'lecturer') {
+                    submittedAssignments.push(payload);
+                    updateAssignmentsList();
+                }
+            } else if (type === 'FILE_DISPLAY') {
+                 if (currentUserRole === 'student') {
+                    displayFileOnBoard(payload, false);
+                 }
+            } else if (type === 'CLEAR') {
+                 lecturerCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                 studentCtx.clearRect(0, 0, studentWhiteboardCanvas.width, studentWhiteboardCanvas.height);
+                 whiteboardContent.innerHTML = '';
+            }
+        };
+
+        function drawOnCanvas(ctx, data) {
+            ctx.strokeStyle = data.color;
+            ctx.lineWidth = data.lineWidth;
+            ctx.globalCompositeOperation = data.operation;
+            
+            if (data.type === 'start') {
+                ctx.beginPath();
+                ctx.moveTo(data.x, data.y);
+            } else if (data.type === 'move') {
+                ctx.lineTo(data.x, data.y);
+                ctx.stroke();
+            } else if (data.type === 'text') {
+                ctx.font = '20px Inter';
+                ctx.fillStyle = data.color;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.textBaseline = 'top';
+                data.textLines.forEach((line, index) => {
+                    ctx.fillText(line, data.x, data.y + (index * data.lineHeight));
+                });
+            }
+        }
+
+
+        function startDrawing(e) {
+             if (e.target.tagName === 'TEXTAREA') return;
+            const targetCanvas = (currentUserRole === 'lecturer') ? whiteboardCanvas : (isStudentDrawing ? studentWhiteboardCanvas : null);
+            if (!targetCanvas || (e.target !== whiteboardContainer && e.target !== targetCanvas) ) return;
+            
+            if (currentTool === 'text') {
+                createTextAtPosition(e);
+                return;
+            }
+            isDrawing = true;
+            const pos = getMousePos(targetCanvas, e);
+            [lastX, lastY] = [pos.x, pos.y];
+            
+            const drawData = {
+                type: 'start',
+                x: pos.x,
+                y: pos.y,
+                color: colorPicker.value,
+                lineWidth: currentTool === 'eraser' ? 30 : 5,
+                operation: currentTool === 'eraser' ? 'destination-out' : 'source-over'
+            };
+            
+            const ctx = isStudentDrawing ? studentCtx : lecturerCtx;
+            drawOnCanvas(ctx, drawData);
+            channel.postMessage({ type: 'DRAW', payload: { isStudentDrawing, data: drawData } });
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            const targetCanvas = (currentUserRole === 'lecturer') ? whiteboardCanvas : (isStudentDrawing ? studentWhiteboardCanvas : null);
+            if(!targetCanvas) return;
+
+            const pos = getMousePos(targetCanvas, e);
+
+             const drawData = {
+                type: 'move',
+                x: pos.x,
+                y: pos.y,
+                color: colorPicker.value,
+                lineWidth: currentTool === 'eraser' ? 30 : 5,
+                operation: currentTool === 'eraser' ? 'destination-out' : 'source-over'
+            };
+
+            const ctx = isStudentDrawing ? studentCtx : lecturerCtx;
+            drawOnCanvas(ctx, drawData);
+            channel.postMessage({ type: 'DRAW', payload: { isStudentDrawing, data: drawData } });
+        }
+        
+        function createTextAtPosition(e) {
+            if (tempTextInput) tempTextInput.blur();
+            const currentCanvas = (currentUserRole === 'lecturer' || isStudentDrawing) ? (isStudentDrawing ? studentWhiteboardCanvas : whiteboardCanvas) : null;
+            if (!currentCanvas) return;
+            const pos = getMousePos(currentCanvas, e);
+            const scrollContainer = currentCanvas.parentElement;
+
+            tempTextInput = document.createElement('textarea');
+            tempTextInput.style.position = 'absolute';
+            tempTextInput.style.left = `${pos.x}px`;
+            tempTextInput.style.top = `${pos.y}px`;
+            tempTextInput.style.border = '1px dashed #4f46e5';
+            tempTextInput.style.outline = 'none';
+            tempTextInput.style.font = '20px Inter, sans-serif';
+            tempTextInput.style.color = 'black';
+            tempTextInput.style.background = 'rgba(255, 255, 255, 0.9)';
+            tempTextInput.style.zIndex = '100';
+            tempTextInput.style.padding = '2px';
+            tempTextInput.style.resize = 'none';
+            tempTextInput.style.overflow = 'hidden';
+            tempTextInput.style.minHeight = '28px';
+            tempTextInput.style.lineHeight = '1.2';
+            
+            scrollContainer.appendChild(tempTextInput);
+            tempTextInput.focus();
+            
+            const lineHeight = 24;
+
+            tempTextInput.addEventListener('blur', () => {
+                if(tempTextInput.value) {
+                    const textData = {
+                        type: 'text',
+                        x: pos.x,
+                        y: pos.y,
+                        textLines: tempTextInput.value.split('\n'),
+                        color: colorPicker.value,
+                        lineHeight: lineHeight
+                    };
+                    const ctx = isStudentDrawing ? studentCtx : lecturerCtx;
+                    drawOnCanvas(ctx, textData);
+                    channel.postMessage({ type: 'DRAW', payload: { isStudentDrawing, data: textData } });
+                }
+                if (tempTextInput.parentElement) {
+                    scrollContainer.removeChild(tempTextInput);
+                }
+                tempTextInput = null;
+            }, { once: true });
+        }
+        
+        const whiteboardContainer = document.querySelector('.whiteboard-scroll-container');
+        whiteboardContainer.addEventListener('mousedown', startDrawing);
+        whiteboardContainer.addEventListener('mousemove', draw);
+        whiteboardContainer.addEventListener('mouseup', () => { isDrawing = false });
+        whiteboardContainer.addEventListener('mouseleave', () => { isDrawing = false });
+        
+        let isStudentDrawing = false;
+        studentDrawBtn.addEventListener('click', () => {
+             isStudentDrawing = !isStudentDrawing;
+            if (isStudentDrawing) {
+                studentWhiteboardCanvas.style.pointerEvents = 'auto';
+                whiteboardCanvas.style.pointerEvents = 'none';
+                drawingToolbar.classList.remove('hidden');
+                studentDrawBtn.textContent = "Stop Drawing";
+                studentDrawBtn.classList.replace('bg-indigo-500', 'bg-red-600');
+            } else {
+                 studentWhiteboardCanvas.style.pointerEvents = 'none';
+                 whiteboardCanvas.style.pointerEvents = 'none';
+                 drawingToolbar.classList.add('hidden');
+                 studentDrawBtn.textContent = "Draw on Whiteboard";
+                 studentDrawBtn.classList.replace('bg-red-600', 'bg-indigo-500');
+            }
+        });
+        
+        toolBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.tool-btn.active')?.classList.remove('active');
+                btn.classList.add('active');
+                currentTool = btn.dataset.tool;
+            });
+        });
+
+        clearCanvasBtn.addEventListener('click', () => {
+            if (confirm('Clear the entire whiteboard?')) {
+                lecturerCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                studentCtx.clearRect(0,0,studentWhiteboardCanvas.width, studentWhiteboardCanvas.height);
+                whiteboardContent.innerHTML = ''; 
+                channel.postMessage({ type: 'CLEAR' });
+            }
+        });
+
+        openFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                 displayFileOnBoard(e.target.files[0], true);
+                 e.target.value = '';
+            }
+        });
+
+        assignmentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const file = assignmentFileInput.files[0];
+            if (!file) return;
+
+            const newSubmission = { studentName: 'You (Student)', file: file, fileName: file.name };
+            
+            channel.postMessage({ type: 'ASSIGNMENT', payload: newSubmission });
+            
+            assignmentStatusMsg.textContent = "Submitted successfully!";
+            setTimeout(() => { assignmentStatusMsg.textContent = ''; }, 3000);
+
+            assignmentForm.reset();
+        });
+
+        function updateAssignmentsList() {
+            if (submittedAssignments.length === 0) {
+                 assignmentsList.innerHTML = `<p class="text-gray-400 text-center py-4">No assignments submitted.</p>`;
+                 return;
+            }
+            assignmentsList.innerHTML = '';
+            submittedAssignments.forEach((sub, index) => {
+                const el = document.createElement('div');
+                el.className = 'bg-gray-700 p-2 rounded-lg flex justify-between items-center';
+                el.innerHTML = `<div><p class="font-semibold text-sm">${sub.fileName}</p><p class="text-xs text-gray-400">${sub.studentName}</p></div>
+                <button data-index="${index}" class="display-assignment-btn text-xs bg-blue-600 px-3 py-1 rounded-full hover:bg-blue-700">Display</button>`;
+                assignmentsList.appendChild(el);
+            });
+        }
+        
+        assignmentsList.addEventListener('click', (e) => {
+             if (e.target.closest('.display-assignment-btn')) {
+                const index = e.target.closest('.display-assignment-btn').dataset.index;
+                displayFileOnBoard(submittedAssignments[index].file, true);
+            }
+        });
+        
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+
+        function displayFileOnBoard(fileOrPayload, shouldBroadcast) {
+            const isFileObject = fileOrPayload instanceof File;
+            const file = isFileObject ? fileOrPayload : null;
+            const payload = isFileObject ? null : fileOrPayload;
+
+            if (shouldBroadcast) {
+                whiteboardHistory.push(whiteboardContent.innerHTML);
+            }
+
+            whiteboardContent.innerHTML = '';
+            
+            if ((isFileObject && (file.type.startsWith('image/') || file.type.startsWith('video/'))) || (payload && payload.type.startsWith('media'))) {
+                const fileUrl = isFileObject ? URL.createObjectURL(file) : payload.url;
+                if ((isFileObject && file.type.startsWith('image/')) || (payload && payload.subType === 'image')) {
+                    const img = document.createElement('img');
+                    img.src = fileUrl;
+                    img.className = 'max-w-full h-auto rounded-lg mx-auto';
+                    whiteboardContent.appendChild(img);
+                    if (shouldBroadcast) channel.postMessage({ type: 'FILE_DISPLAY', payload: { type: 'media', subType: 'image', url: fileUrl } });
+                } else {
+                    const video = document.createElement('video');
+                    video.src = fileUrl;
+                    video.className = 'max-w-full h-auto rounded-lg mx-auto';
+                    video.controls = true;
+                    whiteboardContent.appendChild(video);
+                    if (shouldBroadcast) channel.postMessage({ type: 'FILE_DISPLAY', payload: { type: 'media', subType: 'video', url: fileUrl } });
+                }
+            } else if ((isFileObject && file.type === 'text/plain') || (payload && payload.type === 'text')) {
+                const content = isFileObject ? null : payload.content;
+
+                const renderText = (textContent) => {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = textContent;
+                    textarea.className = 'editable-textarea';
+                    textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+                    if (currentUserRole === 'lecturer') {
+                        whiteboardContainer.style.pointerEvents = 'none';
+                        textarea.addEventListener('focus', () => whiteboardContainer.style.pointerEvents = 'none');
+                        textarea.addEventListener('blur', () => {
+                            whiteboardContainer.style.pointerEvents = 'auto';
+                        }, { once: true });
+                    } else {
+                        textarea.readOnly = true;
+                    }
+                    whiteboardContent.appendChild(textarea);
+                    setTimeout(() => autoResizeTextarea(textarea), 0);
+                };
+
+                if (isFileObject) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        renderText(e.target.result);
+                        if (shouldBroadcast) channel.postMessage({ type: 'FILE_DISPLAY', payload: { type: 'text', content: e.target.result } });
+                    };
+                    reader.readAsText(file);
+                } else {
+                    renderText(content);
+                }
+            } else {
+                 whiteboardContent.innerHTML = `<p class="text-center text-red-400">Unsupported file type.</p>`;
+                 if (shouldBroadcast) whiteboardHistory.pop();
+                 return;
+            }
+             if (shouldBroadcast) undoContainer.classList.remove('hidden');
+        }
+        
+        undoBtn.addEventListener('click', () => {
+            if(whiteboardHistory.length > 0) {
+                const previousContent = whiteboardHistory.pop();
+                
+                const currentVideo = whiteboardContent.querySelector('video');
+                if (currentVideo) {
+                    URL.revokeObjectURL(currentVideo.src);
+                }
+
+                whiteboardContent.innerHTML = previousContent;
+                whiteboardContainer.style.pointerEvents = 'auto';
+                whiteboardContent.querySelectorAll('.editable-textarea').forEach(textarea => {
+                    textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+                    textarea.addEventListener('focus', () => whiteboardContainer.style.pointerEvents = 'none');
+                    textarea.addEventListener('blur', () => whiteboardContainer.style.pointerEvents = 'auto', { once: true });
+                    autoResizeTextarea(textarea);
+                });
+            }
+            if(whiteboardHistory.length === 0) {
+                undoContainer.classList.add('hidden');
+            }
+        });
+
+        // --- Footer Controls Logic ---
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = window.location.pathname; // Reload without query params
+            }
+        });
+
+        toggleMicBtn.addEventListener('click', () => {
+            isMicOn = !isMicOn;
+            document.getElementById('mic-on-icon').classList.toggle('hidden', !isMicOn);
+            document.getElementById('mic-off-icon').classList.toggle('hidden', isMicOn);
+            toggleMicBtn.classList.toggle('bg-blue-500', isMicOn);
+            toggleMicBtn.classList.toggle('bg-gray-600', !isMicOn);
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => track.enabled = isMicOn);
+            }
+        });
+        
+        toggleCameraBtn.addEventListener('click', () => {
+            isCameraOn = !isCameraOn;
+            document.getElementById('cam-on-icon').classList.toggle('hidden', !isCameraOn);
+            document.getElementById('cam-off-icon').classList.toggle('hidden', isCameraOn);
+            toggleCameraBtn.classList.toggle('bg-blue-500', isCameraOn);
+            toggleCameraBtn.classList.toggle('bg-gray-600', !isCameraOn);
+            
+            if (localStream) {
+                localStream.getVideoTracks().forEach(track => track.enabled = isCameraOn);
+            }
+
+            userVideo.classList.toggle('hidden', !isCameraOn);
+            userCamOffPlaceholder.classList.toggle('hidden', isCameraOn);
+
+            if (currentUserRole === 'lecturer') {
+                lecturerVideo.classList.toggle('hidden', !isCameraOn);
+                lecturerCamOffPlaceholder.classList.toggle('hidden', isCameraOn);
+            }
+        });
+        
+        raiseHandBtn.addEventListener('click', () => {
+            isHandRaised = !isHandRaised;
+            document.getElementById('raise-hand-text').textContent = isHandRaised ? 'Lower Hand' : 'Raise Hand';
+            raiseHandBtn.classList.toggle('bg-yellow-500', !isHandRaised);
+            raiseHandBtn.classList.toggle('bg-blue-600', isHandRaised);
+            document.getElementById('user-participant-card').classList.toggle('hand-raised-indicator', isHandRaised);
+            document.querySelector('#user-participant-card .hand-raise-icon').classList.toggle('hidden', !isHandRaised);
+        });
+
+        endCallBtn.addEventListener('click', () => {
+             if (confirm('Are you sure you want to end the session?')) {
+                window.location.href = window.location.pathname;
+            }
+        });
+        
+        // --- Recording Logic ---
+        async function startRecording() {
+            try {
+                if (!localStream || localStream.getAudioTracks().length === 0) {
+                    await setupLocalMedia();
+                    if (!localStream) throw new Error("Could not get microphone access.");
+                }
+
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: true 
+                });
+
+                const audioContext = new AudioContext();
+                const micSource = audioContext.createMediaStreamSource(localStream);
+                const screenAudioSource = audioContext.createMediaStreamSource(displayStream);
+                const destination = audioContext.createMediaStreamDestination();
+                
+                micSource.connect(destination);
+                if (screenAudioSource.mediaStream.getAudioTracks().length > 0) {
+                    screenAudioSource.connect(destination);
+                }
+                
+                const combinedStream = new MediaStream([
+                    displayStream.getVideoTracks()[0],
+                    destination.stream.getAudioTracks()[0]
+                ]);
+
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' });
+                
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    document.body.appendChild(a);
+                    a.style = 'display: none';
+                    a.href = url;
+                    a.download = `ROWBIAD-Recording-${new Date().toISOString()}.webm`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                };
+
+                displayStream.getVideoTracks()[0].onended = () => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                       recordBtn.click();
+                    }
+                };
+                
+                mediaRecorder.start();
+            } catch (err) {
+                console.error("Error starting recording:", err);
+                alert("Could not start recording. Please ensure you grant permission for both screen and microphone.");
+                isRecording = false;
+                document.getElementById('record-text').textContent = 'Record';
+                recordBtn.classList.replace('bg-red-600','bg-gray-600');
+                recordingIndicator.classList.add('hidden');
+            }
+        }
+
+</body>
+</html>
+
